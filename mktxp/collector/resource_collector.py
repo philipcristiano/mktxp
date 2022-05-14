@@ -23,14 +23,12 @@ class SystemResourceCollector(BaseCollector):
     '''
     @staticmethod
     def collect(router_entry):
-        print('collecting')
         resource_labels = ['uptime', 'version', 'free_memory', 'total_memory',
                            'cpu_count', 'cpu_frequency', 'cpu_load',
                            'free_hdd_space', 'total_hdd_space',
                            'architecture_name', 'board_name']
 
         resource_records = SystemResourceMetricsDataSource.metric_records(router_entry, metric_labels = resource_labels)
-        print(resource_labels)
         if resource_records:
             # translate records to appropriate values
             translated_fields = ['uptime']
@@ -39,8 +37,6 @@ class SystemResourceCollector(BaseCollector):
                     value = resource_record.get(translated_field, None)
                     if value:
                         resource_record[translated_field] = SystemResourceCollector._translated_values(translated_field, value)
-                    else:
-                        print('No value!')
             uptime_metrics = BaseCollector.gauge_collector('system_uptime', 'Time interval since boot-up', resource_records, 'uptime', ['version', 'board_name', 'architecture_name'])
             yield uptime_metrics
 
