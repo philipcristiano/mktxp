@@ -37,9 +37,9 @@ class HealthCollector(BaseCollector):
                 if 'cpu_temperature' in record:
                     cpu_temperature_metrics = BaseCollector.gauge_collector('system_cpu_temperature', 'CPU current temperature', [record, ], 'cpu_temperature')
                     yield cpu_temperature_metrics
-                elif 'switch_temperature' in record:
-                    cpu_temperature_metrics = BaseCollector.gauge_collector('system_cpu_temperature', 'CPU current temperature', [record, ], 'switch_temperature')
-                    yield cpu_temperature_metrics
+                if 'switch_temperature' in record:
+                    switch_temperature_metrics = BaseCollector.gauge_collector('system_switch_temperature', 'Switch current temperature', [record, ], 'switch_temperature')
+                    yield switch_temperature_metrics
 
                 if 'fan1_speed' in record:
                     fan_one_speed_metrics = BaseCollector.gauge_collector('system_fan_one_speed', 'System fan 1 current speed', [record, ], 'fan1_speed')
