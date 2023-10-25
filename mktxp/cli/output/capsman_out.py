@@ -13,9 +13,7 @@
 
 
 from mktxp.flow.processor.output import BaseOutputProcessor
-from mktxp.datasource.dhcp_ds import DHCPMetricsDataSource
 from mktxp.datasource.capsman_ds import CapsmanRegistrationsMetricsDataSource
-
 
 class CapsmanOutput:
     ''' CAPsMAN CLI Output
@@ -29,12 +27,9 @@ class CapsmanOutput:
             return 
 
         # translate / trim / augment registration records
-        dhcp_lease_labels = ['host_name', 'comment', 'address', 'mac_address']
-        dhcp_lease_records = DHCPMetricsDataSource.metric_records(router_entry, metric_labels = dhcp_lease_labels, add_router_id = False)   
-
         dhcp_rt_by_interface = {}
         for registration_record in sorted(registration_records, key = lambda rt_record: rt_record['rx_signal'], reverse=True):
-            BaseOutputProcessor.augment_record(router_entry, registration_record, dhcp_lease_records)
+            BaseOutputProcessor.augment_record(router_entry, registration_record)
 
             interface = registration_record['interface']
             if interface in dhcp_rt_by_interface.keys():
@@ -59,5 +54,4 @@ class CapsmanOutput:
         for server in dhcp_rt_by_interface.keys():
             print(f'{server} clients: {len(dhcp_rt_by_interface[server])}')
         print(f'Total connected CAPsMAN clients: {output_records}', '\n')
-
 

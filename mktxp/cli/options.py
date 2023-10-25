@@ -15,7 +15,7 @@
 import os
 import pkg_resources
 from argparse import ArgumentParser, HelpFormatter
-from mktxp.cli.config.config import config_handler, MKTXPConfigKeys
+from mktxp.cli.config.config import config_handler, MKTXPConfigKeys, CustomConfig
 from mktxp.utils.utils import FSHelper, UniquePartialMatchList, run_cmd
 
 
@@ -62,22 +62,31 @@ Selected metrics info can be printed on the command line. For more information, 
     def parse_options(self):
         ''' General Options parsing workflow
         '''
-        parser = ArgumentParser(prog = self._script_name,
+
+        global_options_parser = ArgumentParser(add_help=False)
+        self.parse_global_options(global_options_parser)
+        namespace, _ = global_options_parser.parse_known_args()    
+        if namespace.cfg_dir:
+            config_handler(CustomConfig(namespace.cfg_dir))
+        else:
+            config_handler()
+
+        commands_parser = ArgumentParser(prog = self._script_name,
                                 description = 'Prometheus Exporter for Mikrotik RouterOS',
-                                formatter_class=MKTXPHelpFormatter)
+                                formatter_class=MKTXPHelpFormatter, parents=[global_options_parser])
+        self.parse_commands(commands_parser)
+        args = vars(commands_parser.parse_args())
 
-        self.parse_global_options(parser)
-        self.parse_commands(parser)
-        args = vars(parser.parse_args())
-
-        self._check_args(args, parser)
+        self._check_args(args, commands_parser)
 
         return args
 
     def parse_global_options(self, parser):
         ''' Parses global options
         '''
-        pass
+        parser.add_argument('--cfg-dir', dest = 'cfg_dir', 
+                    type = lambda d: self._is_valid_dir_path(parser, d),
+                    help = 'MKTXP config files directory (optional)')
 
     def parse_commands(self, parser):
         ''' Commands parsing
@@ -136,6 +145,11 @@ Selected metrics info can be printed on the command line. For more information, 
         optional_args_group.add_argument('-dc', '--dhcp_clients', dest='dhcp_clients',
                 help = "DHCP clients metrics",
                 action = 'store_true')
+
+        optional_args_group.add_argument('-cn', '--conn_stats', dest='conn_stats',
+                help = "IP connections stats",
+                action = 'store_true')
+
 
     # Options checking
     def _check_args(self, args, parser):
@@ -201,7 +215,7 @@ Selected metrics info can be printed on the command line. For more information, 
     def _add_entry_name(parser, registered_only = False, required = True, help = 'MKTXP Entry name'):
         parser.add_argument('-en', '--entry-name', dest = 'entry_name',
             type = str,
-            metavar = config_handler.registered_entries() if registered_only else None,
+            metavar = list(config_handler.registered_entries()) if registered_only else None,
             required = required,
             choices = UniquePartialMatchList(config_handler.registered_entries())if registered_only else None,
             help = help)
@@ -218,8 +232,9 @@ Selected metrics info can be printed on the command line. For more information, 
             return editor
 
         commands = ['which nano', 'which vi', 'which vim']
+        quiet = not config_handler.system_entry().verbose_mode
         for command in commands:
-            editor = run_cmd(command, quiet = True).rstrip()
+            editor = run_cmd(command, quiet = quiet).rstrip()
             if editor:
                 break                                  
         return editor

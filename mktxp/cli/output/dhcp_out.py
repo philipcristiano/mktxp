@@ -22,19 +22,21 @@ class DHCPOutput:
     @staticmethod
     def clients_summary(router_entry):
         dhcp_lease_labels = ['host_name', 'comment', 'active_address', 'address', 'mac_address', 'server', 'expires_after']
-        dhcp_lease_records = DHCPMetricsDataSource.metric_records(router_entry, metric_labels = dhcp_lease_labels, add_router_id = False)
+        dhcp_lease_records = DHCPMetricsDataSource.metric_records(router_entry, metric_labels = dhcp_lease_labels, add_router_id = False, translate = False, dhcp_cache = False)
         if not dhcp_lease_records:
             print('No DHCP registration records')
             return 
 
         dhcp_by_server = {}
-        for dhcp_lease_record in sorted(dhcp_lease_records, key = lambda dhcp_record: dhcp_record['active_address'], reverse=True):
-            server = dhcp_lease_record['server']
+        for dhcp_lease_record in sorted(dhcp_lease_records, key = lambda dhcp_record: dhcp_record['address'], reverse=True):
+            server = dhcp_lease_record.get('server', 'all')
+            if server == 'all':
+                dhcp_lease_record['server'] = server
             if server in dhcp_by_server.keys():
                 dhcp_by_server[server].append(dhcp_lease_record)
             else:
                 dhcp_by_server[server] = [dhcp_lease_record]         
-        
+
         output_records = 0
         lease_records = len(dhcp_lease_records)        
         output_entry = BaseOutputProcessor.OutputDHCPEntry

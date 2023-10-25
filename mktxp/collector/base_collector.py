@@ -15,13 +15,15 @@
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, InfoMetricFamily
 from mktxp.cli.config.config import MKTXPConfigKeys
      
-     
+
 class BaseCollector:
     ''' Base Collector methods
         For use by custom collector
     '''
     @staticmethod
-    def info_collector(name, decription, router_records, metric_labels=[]):
+    def info_collector(name, decription, router_records, metric_labels=None):
+        if metric_labels is None:
+            metric_labels = []
         BaseCollector._add_id_labels(metric_labels)
         collector = InfoMetricFamily(f'mktxp_{name}', decription)
 
@@ -31,23 +33,27 @@ class BaseCollector:
         return collector
 
     @staticmethod
-    def counter_collector(name, decription, router_records, metric_key, metric_labels=[]):
+    def counter_collector(name, decription, router_records, metric_key, metric_labels=None):
+        if metric_labels is None:
+            metric_labels = []
         BaseCollector._add_id_labels(metric_labels)
         collector = CounterMetricFamily(f'mktxp_{name}', decription, labels=metric_labels)
 
-        for router_record in router_records:           
-            label_values = [router_record.get(label) for label in metric_labels]
+        for router_record in router_records:
+            label_values = [router_record.get(label) if router_record.get(label) else '' for label in metric_labels]        
             collector.add_metric(label_values, router_record.get(metric_key, 0))
         return collector
 
     @staticmethod
-    def gauge_collector(name, decription, router_records, metric_key, metric_labels=[], add_id_labels = True):
+    def gauge_collector(name, decription, router_records, metric_key, metric_labels = None, add_id_labels = True):
+        if metric_labels is None:
+            metric_labels = []        
         if add_id_labels:
             BaseCollector._add_id_labels(metric_labels)
         collector = GaugeMetricFamily(f'mktxp_{name}', decription, labels=metric_labels)
 
         for router_record in router_records:       
-            label_values = [router_record.get(label) for label in metric_labels]
+            label_values = [router_record.get(label) if router_record.get(label) else '' for label in metric_labels]        
             collector.add_metric(label_values, router_record.get(metric_key, 0))
         return collector
 

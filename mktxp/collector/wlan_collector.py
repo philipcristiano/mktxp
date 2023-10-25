@@ -14,7 +14,6 @@
 
 from mktxp.flow.processor.output import BaseOutputProcessor
 from mktxp.collector.base_collector import BaseCollector
-from mktxp.datasource.dhcp_ds import DHCPMetricsDataSource
 from mktxp.datasource.wireless_ds import WirelessMetricsDataSource
 from mktxp.datasource.interface_ds import InterfaceMonitorMetricsDataSource
 
@@ -27,8 +26,8 @@ class WLANCollector(BaseCollector):
         if not router_entry.config_entry.wireless:
             return
 
-        monitor_labels = ['channel', 'noise_floor', 'overall_tx_ccq', 'registered_clients']
-        monitor_records = InterfaceMonitorMetricsDataSource.metric_records(router_entry, metric_labels = monitor_labels, kind = 'wireless')   
+        monitor_labels = ['channel', 'noise_floor', 'overall_tx_ccq', 'registered_clients', 'registered_peers']
+        monitor_records = InterfaceMonitorMetricsDataSource.metric_records(router_entry, metric_labels = monitor_labels, kind = WirelessMetricsDataSource.wireless_package(router_entry))   
         if monitor_records:
             # sanitize records for relevant labels
             noise_floor_records = [monitor_record for monitor_record in monitor_records if monitor_record.get('noise_floor')]
@@ -49,33 +48,29 @@ class WLANCollector(BaseCollector):
 
         # the client info metrics
         if router_entry.config_entry.wireless_clients:
-            registration_labels = ['interface', 'ssid', 'mac_address', 'tx_rate', 'rx_rate', 'uptime', 'bytes', 'signal_to_noise', 'tx_ccq', 'signal_strength']
+            registration_labels = ['interface', 'ssid', 'mac_address', 'tx_rate', 'rx_rate', 'uptime', 'bytes', 'signal_to_noise', 'tx_ccq', 'signal_strength', 'signal']
             registration_records = WirelessMetricsDataSource.metric_records(router_entry, metric_labels = registration_labels)
             if registration_records:
-                dhcp_lease_labels = ['mac_address', 'address', 'host_name', 'comment']
-                dhcp_lease_records = DHCPMetricsDataSource.metric_records(router_entry, metric_labels = dhcp_lease_labels)
-      
                 for registration_record in registration_records:
-                    BaseOutputProcessor.augment_record(router_entry, registration_record, dhcp_lease_records)                
+                    BaseOutputProcessor.augment_record(router_entry, registration_record)
 
-                tx_byte_metrics = BaseCollector.counter_collector('wlan_clients_tx_bytes', 'Number of sent packet bytes', registration_records, 'tx_bytes', ['dhcp_name'])
+                tx_byte_metrics = BaseCollector.counter_collector('wlan_clients_tx_bytes', 'Number of sent packet bytes', registration_records, 'tx_bytes', ['dhcp_name', 'mac_address'])
                 yield tx_byte_metrics
 
-                rx_byte_metrics = BaseCollector.counter_collector('wlan_clients_rx_bytes', 'Number of received packet bytes', registration_records, 'rx_bytes', ['dhcp_name'])
+                rx_byte_metrics = BaseCollector.counter_collector('wlan_clients_rx_bytes', 'Number of received packet bytes', registration_records, 'rx_bytes', ['dhcp_name', 'mac_address'])
                 yield rx_byte_metrics
 
-                signal_strength_metrics = BaseCollector.gauge_collector('wlan_clients_signal_strength', 'Average strength of the client signal recevied by AP', registration_records, 'signal_strength', ['dhcp_name'])
+                signal_strength_metrics = BaseCollector.gauge_collector('wlan_clients_signal_strength', 'Average strength of the client signal recevied by AP', registration_records, 'signal_strength', ['dhcp_name', 'mac_address'])
                 yield signal_strength_metrics
 
-                signal_to_noise_metrics = BaseCollector.gauge_collector('wlan_clients_signal_to_noise', 'Client devices signal to noise ratio', registration_records, 'signal_to_noise', ['dhcp_name'])
+                signal_to_noise_metrics = BaseCollector.gauge_collector('wlan_clients_signal_to_noise', 'Client devices signal to noise ratio', registration_records, 'signal_to_noise', ['dhcp_name', 'mac_address'])
                 yield signal_to_noise_metrics
 
-                tx_ccq_metrics = BaseCollector.gauge_collector('wlan_clients_tx_ccq', 'Client Connection Quality (CCQ) for transmit', registration_records, 'tx_ccq', ['dhcp_name'])
+                tx_ccq_metrics = BaseCollector.gauge_collector('wlan_clients_tx_ccq', 'Client Connection Quality (CCQ) for transmit', registration_records, 'tx_ccq', ['dhcp_name', 'mac_address'])
                 yield tx_ccq_metrics
 
                 registration_metrics = BaseCollector.info_collector('wlan_clients_devices', 'Client devices info', 
                                         registration_records, ['dhcp_name', 'dhcp_address', 'rx_signal', 'ssid', 'tx_rate', 'rx_rate', 'interface', 'mac_address', 'uptime'])
                 yield registration_metrics
-
 
 

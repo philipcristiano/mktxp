@@ -13,18 +13,42 @@
 
 
 from mktxp.datasource.base_ds import BaseDSProcessor
+from mktxp.datasource.package_ds import PackageMetricsDataSource
 
 
 class WirelessMetricsDataSource:
     ''' Wireless Metrics data provider
     '''             
+    WIFIWAVE2 = 'wifiwave2'
+    WIRELESS = 'wireless'
+
     @staticmethod
-    def metric_records(router_entry, *, metric_labels = [], add_router_id = True):
+    def metric_records(router_entry, *, metric_labels = None, add_router_id = True):
+        if metric_labels is None:
+            metric_labels = []                
         try:
-            registration_table_records = router_entry.api_connection.router_api().get_resource('/interface/wireless/registration-table').get()
-            return BaseDSProcessor.trimmed_records(router_entry, router_records = registration_table_records, metric_labels = metric_labels, add_router_id = add_router_id)
+            wireless_package = WirelessMetricsDataSource.wireless_package(router_entry)
+            registration_table_records = router_entry.api_connection.router_api().get_resource(f'/interface/{wireless_package}/registration-table').get()
+
+            # With wifiwave2, Mikrotik renamed the field 'signal-strength' to 'signal' 
+            # For backward compatibility, including both variants
+            for record in registration_table_records:
+                if 'signal' in record:
+                    record['signal-strength'] = record['signal']
+
+            return BaseDSProcessor.trimmed_records(router_entry, router_records = registration_table_records, metric_labels = metric_labels, add_router_id = add_router_id,)
         except Exception as exc:
             print(f'Error getting wireless registration table info from router{router_entry.router_name}@{router_entry.config_entry.hostname}: {exc}')
             return None
 
 
+    @staticmethod
+    def wireless_package(router_entry):
+        if not router_entry.wifi_package:
+            ww2_installed = PackageMetricsDataSource.is_package_installed(router_entry, package_name = WirelessMetricsDataSource.WIFIWAVE2)
+            router_entry.wifi_package = WirelessMetricsDataSource.WIFIWAVE2 if ww2_installed else WirelessMetricsDataSource.WIRELESS
+        return router_entry.wifi_package
+
+    @staticmethod
+    def wifiwave2_installed(router_entry):
+        return WirelessMetricsDataSource.wireless_package(router_entry) == WirelessMetricsDataSource.WIFIWAVE2

@@ -13,7 +13,6 @@
 
 
 from mktxp.flow.processor.output import BaseOutputProcessor
-from mktxp.datasource.dhcp_ds import DHCPMetricsDataSource
 from mktxp.datasource.wireless_ds import WirelessMetricsDataSource
 
 
@@ -29,12 +28,11 @@ class WirelessOutput:
             return 
 
         # translate / trim / augment registration records
-        dhcp_lease_labels = ['host_name', 'comment', 'address', 'mac_address']
-        dhcp_lease_records = DHCPMetricsDataSource.metric_records(router_entry, metric_labels = dhcp_lease_labels, add_router_id = False)   
-
         dhcp_rt_by_interface = {}
-        for registration_record in sorted(registration_records, key = lambda rt_record: rt_record['signal_strength'], reverse=True):
-            BaseOutputProcessor.augment_record(router_entry, registration_record, dhcp_lease_records)
+
+        key = lambda rt_record: rt_record['signal_strength'] if rt_record.get('signal_strength') else rt_record['interface']
+        for registration_record in sorted(registration_records, key = key, reverse=True):
+            BaseOutputProcessor.augment_record(router_entry, registration_record)
 
             interface = registration_record['interface']
             if interface in dhcp_rt_by_interface.keys():
@@ -44,7 +42,8 @@ class WirelessOutput:
 
         output_records = 0
         registration_records = len(registration_records)                
-        output_entry = BaseOutputProcessor.OutputWiFiEntry
+        output_entry = BaseOutputProcessor.OutputWiFiWave2Entry \
+                        if WirelessMetricsDataSource.wifiwave2_installed(router_entry) else BaseOutputProcessor.OutputWiFiEntry
         output_table = BaseOutputProcessor.output_table(output_entry)
         
         for key in dhcp_rt_by_interface.keys():

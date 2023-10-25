@@ -13,11 +13,15 @@
 
 
 from collections import OrderedDict
-from mktxp.cli.config.config import MKTXPConfigKeys
+from mktxp.cli.config.config import CollectorKeys
 from mktxp.collector.dhcp_collector import DHCPCollector
+from mktxp.collector.package_collector import PackageCollector
+from mktxp.collector.connection_collector import IPConnectionCollector
 from mktxp.collector.interface_collector import InterfaceCollector
 from mktxp.collector.health_collector import HealthCollector
 from mktxp.collector.identity_collector import IdentityCollector
+from mktxp.collector.public_ip_collector import PublicIPAddressCollector
+from mktxp.collector.ipv6_neighbor_collector import IPv6NeighborCollector
 from mktxp.collector.monitor_collector import MonitorCollector
 from mktxp.collector.poe_collector import POECollector
 from mktxp.collector.netwatch_collector import NetwatchCollector
@@ -29,7 +33,9 @@ from mktxp.collector.capsman_collector import CapsmanCollector
 from mktxp.collector.bandwidth_collector import BandwidthCollector
 from mktxp.collector.firewall_collector import FirewallCollector
 from mktxp.collector.mktxp_collector import MKTXPCollector
-
+from mktxp.collector.user_collector import UserCollector
+from mktxp.collector.queue_collector import QueueTreeCollector
+from mktxp.collector.queue_collector import QueueSimpleCollector
 
 class CollectorRegistry:
     ''' MKTXP Collectors Registry
@@ -40,24 +46,33 @@ class CollectorRegistry:
         # bandwidth collector is not router-entry related, so registering directly
         self.bandwidthCollector = BandwidthCollector()
 
-        self.register('IdentityCollector', IdentityCollector.collect)
-        self.register('SystemResourceCollector', SystemResourceCollector.collect)
-        self.register('HealthCollector', HealthCollector.collect)
+        self.register(CollectorKeys.IDENTITY_COLLECTOR, IdentityCollector.collect)
+        self.register(CollectorKeys.SYSTEM_RESOURCE_COLLECTOR, SystemResourceCollector.collect)
+        self.register(CollectorKeys.HEALTH_COLLECTOR, HealthCollector.collect)
+        self.register(CollectorKeys.PUBLIC_IP_ADDRESS_COLLECTOR, PublicIPAddressCollector.collect)
 
-        self.register('DHCPCollector', DHCPCollector.collect)
-        self.register('PoolCollector', PoolCollector.collect)
-        self.register('InterfaceCollector', InterfaceCollector.collect)
+        self.register(CollectorKeys.IPV6_NEIGHBOR_COLLECTOR, IPv6NeighborCollector.collect)
 
-        self.register('FirewallCollector', FirewallCollector.collect)
-        self.register('MonitorCollector', MonitorCollector.collect)
-        self.register('POECollector', POECollector.collect)
-        self.register('NetwatchCollector', NetwatchCollector.collect)
-        self.register('RouteCollector', RouteCollector.collect)
+        self.register(CollectorKeys.PACKAGE_COLLECTOR, PackageCollector.collect)
+        self.register(CollectorKeys.DHCP_COLLECTOR, DHCPCollector.collect)
+        self.register(CollectorKeys.IP_CONNECTION_COLLECTOR, IPConnectionCollector.collect)
+        self.register(CollectorKeys.POOL_COLLECTOR, PoolCollector.collect)
+        self.register(CollectorKeys.INTERFACE_COLLECTOR, InterfaceCollector.collect)
 
-        self.register('WLANCollector', WLANCollector.collect)
-        self.register('CapsmanCollector', CapsmanCollector.collect)
+        self.register(CollectorKeys.FIREWALL_COLLECTOR, FirewallCollector.collect)
+        self.register(CollectorKeys.MONITOR_COLLECTOR, MonitorCollector.collect)
+        self.register(CollectorKeys.POE_COLLECTOR, POECollector.collect)
+        self.register(CollectorKeys.NETWATCH_COLLECTOR, NetwatchCollector.collect)
+        self.register(CollectorKeys.ROUTE_COLLECTOR, RouteCollector.collect)
 
-        self.register('MKTXPCollector', MKTXPCollector.collect)
+        self.register(CollectorKeys.WLAN_COLLECTOR, WLANCollector.collect)
+        self.register(CollectorKeys.CAPSMAN_COLLECTOR, CapsmanCollector.collect)
+
+        self.register(CollectorKeys.USER_COLLECTOR, UserCollector.collect)
+        self.register(CollectorKeys.QUEUE_TREE_COLLECTOR, QueueTreeCollector.collect)
+        self.register(CollectorKeys.QUEUE_SIMPLE_COLLECTOR, QueueSimpleCollector.collect)
+
+        self.register(CollectorKeys.MKTXP_COLLECTOR, MKTXPCollector.collect)
 
     def register(self, collector_ID, collect_func):
         self.registered_collectors[collector_ID] = collect_func

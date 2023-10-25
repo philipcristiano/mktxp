@@ -15,8 +15,8 @@
 from mktxp.cli.config.config import MKTXPConfigKeys
 from mktxp.flow.processor.output import BaseOutputProcessor
 from mktxp.collector.base_collector import BaseCollector
-from mktxp.datasource.dhcp_ds import DHCPMetricsDataSource
-from mktxp.datasource.capsman_ds import CapsmanCapsMetricsDataSource, CapsmanRegistrationsMetricsDataSource
+from mktxp.datasource.capsman_ds import CapsmanCapsMetricsDataSource, CapsmanRegistrationsMetricsDataSource, CapsmanInterfacesDatasource
+from mktxp.datasource.wireless_ds import WirelessMetricsDataSource
 
 
 class CapsmanCollector(BaseCollector):
@@ -33,7 +33,7 @@ class CapsmanCollector(BaseCollector):
             remote_caps_metrics = BaseCollector.info_collector('capsman_remote_caps', 'CAPsMAN remote caps', remote_caps_records, remote_caps_labels)
             yield remote_caps_metrics
 
-        registration_labels = ['interface', 'ssid', 'mac_address', 'tx_rate', 'rx_rate', 'rx_signal', 'uptime', 'bytes']
+        registration_labels = ['interface', 'ssid', 'mac_address', 'tx_rate', 'rx_rate', 'rx_signal', 'signal', 'uptime', 'bytes']
         registration_records = CapsmanRegistrationsMetricsDataSource.metric_records(router_entry, metric_labels = registration_labels)
         if registration_records:
             # calculate number of registrations per interface
@@ -50,23 +50,28 @@ class CapsmanCollector(BaseCollector):
 
             # the client info metrics
             if router_entry.config_entry.capsman_clients:
+
                 # translate / trim / augment registration records
-                dhcp_lease_labels = ['mac_address', 'address', 'host_name', 'comment']
-                dhcp_lease_records = DHCPMetricsDataSource.metric_records(router_entry, metric_labels = dhcp_lease_labels)
                 for registration_record in registration_records:
-                    BaseOutputProcessor.augment_record(router_entry, registration_record, dhcp_lease_records)
+                    BaseOutputProcessor.augment_record(router_entry, registration_record)
                     
-                tx_byte_metrics = BaseCollector.counter_collector('capsman_clients_tx_bytes', 'Number of sent packet bytes', registration_records, 'tx_bytes', ['dhcp_name'])
+                tx_byte_metrics = BaseCollector.counter_collector('capsman_clients_tx_bytes', 'Number of sent packet bytes', registration_records, 'tx_bytes', ['dhcp_name', 'mac_address'])
                 yield tx_byte_metrics
 
-                rx_byte_metrics = BaseCollector.counter_collector('capsman_clients_rx_bytes', 'Number of received packet bytes', registration_records, 'rx_bytes', ['dhcp_name'])
+                rx_byte_metrics = BaseCollector.counter_collector('capsman_clients_rx_bytes', 'Number of received packet bytes', registration_records, 'rx_bytes', ['dhcp_name', 'mac_address'])
                 yield rx_byte_metrics
 
-                signal_strength_metrics = BaseCollector.gauge_collector('capsman_clients_signal_strength', 'Client devices signal strength', registration_records, 'rx_signal', ['dhcp_name'])
+                signal_strength_metrics = BaseCollector.gauge_collector('capsman_clients_signal_strength', 'Client devices signal strength', registration_records, 'rx_signal', ['dhcp_name', 'mac_address'])
                 yield signal_strength_metrics
 
                 registration_metrics = BaseCollector.info_collector('capsman_clients_devices', 'Registered client devices info', 
                                         registration_records, ['dhcp_name', 'dhcp_address', 'rx_signal', 'ssid', 'tx_rate', 'rx_rate', 'interface', 'mac_address', 'uptime'])
                 yield registration_metrics
-    
+
+
+        remote_cap_interface_labels = ['name', 'configuration', 'mac_address', 'current_state', 'current_channel', 'current_registered_clients']
+        remote_cap_interface_records = CapsmanInterfacesDatasource.metric_records(router_entry, metric_labels = remote_cap_interface_labels)
+        if remote_cap_interface_records:
+            remote_caps_metrics = BaseCollector.info_collector('capsman_interfaces', 'CAPsMAN interfaces', remote_cap_interface_records, remote_cap_interface_labels)
+            yield remote_caps_metrics
 

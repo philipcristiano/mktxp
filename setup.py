@@ -20,7 +20,7 @@ with open(path.join(pkg_dir, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='mktxp',
-    version='0.34',
+    version='1.2.1',
 
     url='https://github.com/akpw/mktxp',
 
@@ -69,6 +69,7 @@ setup(
         'Intended Audience :: System Administrators',
         'Intended Audience :: Information Technology',
         'Operating System :: MacOS',
+        'Operating System :: POSIX :: BSD :: FreeBSD',
         'Operating System :: POSIX :: Linux',
         'Topic :: System',
         'Topic :: System :: Systems Administration',

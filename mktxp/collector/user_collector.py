@@ -13,21 +13,19 @@
 
 
 from mktxp.collector.base_collector import BaseCollector
-from mktxp.datasource.poe_ds import POEMetricsDataSource
+from mktxp.datasource.user_ds import UserMetricsDataSource
 
 
-class POECollector(BaseCollector):
-    ''' POE Metrics collector
-    '''    
+class UserCollector(BaseCollector):
+    '''Active Users collector'''
     @staticmethod
     def collect(router_entry):
-        if not router_entry.config_entry.poe:
+        if not router_entry.config_entry.installed_packages:
             return
 
-        poe_labels = ['name', 'poe_out', 'poe_priority', 'poe_voltage', 'poe_out_status', 'poe_out_voltage', 'poe_out_current', 'poe_out_power']
-        poe_records = POEMetricsDataSource.metric_records(router_entry, include_comments = True, metric_labels = poe_labels)  
+        user_labels = ['name', 'when', 'address', 'via', 'group']
+        user_records = UserMetricsDataSource.metric_records(router_entry, metric_labels=user_labels)
+        if user_records:
+            user_metrics = BaseCollector.info_collector('active_users', 'Active Users', user_records, user_labels)
+            yield user_metrics
 
-        if poe_records:
-            poe_metrics = BaseCollector.info_collector('poe', 'POE Metrics', poe_records, poe_labels)
-            yield poe_metrics
-            
